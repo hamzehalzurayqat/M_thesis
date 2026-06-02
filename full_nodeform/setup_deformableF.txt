@@ -1,0 +1,44 @@
+import sys
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+# Set up paths
+HOME = Path.home()
+PROJECT_DIR = Path("C:/Users/20228014/Desktop/final_project")
+# Add RF-DETR and SAM2 to path
+sys.path.insert(0, str(PROJECT_DIR / "rf-detr"))
+sys.path.insert(0, str(PROJECT_DIR / "sam2"))
+
+# Training configuration for crack detection with improved architecture
+train_cmd = [
+    sys.executable,
+    "-m", "rfdetr.main",
+    "--encoder", "dinov2_base",
+    "--dataset_file", "coco",
+    "--dataset_dir", "C:/Users/20228014/Desktop/crack-augmented",
+    "--output_dir", "../outputfulal34enc0"
+    "/crack_detection",
+    "--batch_size", "2",
+    "--grad_accum_steps","8",
+    "--epochs", "70",
+    "--lr", "5e-5",
+    "--num_classes", "5",
+    "--projector_scale","P2","P3", "P4", "P5", "P6",
+    "--enc_layers", "0",
+    "--num_feature_levels", "5",
+    "--dec_layers", "4",
+    "--num_queries", "50",
+    "--resolution", "512",               
+    "--print_freq", "1",
+    "--two_stage",
+    "--device", "cuda",
+    "--num_workers", "0",
+    "--square_resize_div_64",
+    "--eval_max_dets", "100"
+    ]
+
+print("⏳ Starting training...")
+subprocess.run(train_cmd, cwd=str(PROJECT_DIR / "rf-detr"), check=True)
+print("✓ Training completed!")
