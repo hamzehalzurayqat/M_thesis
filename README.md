@@ -101,3 +101,4 @@ subprocess.run(train_cmd, cwd=str(PROJECT_DIR / "rf-detr"), check=True)
 print("✓ Training completed!")
 
 ```
+[`dataset`]([pipeline_explanation.md](https://drive.google.com/drive/folders/1Y9z8WXlv8zS2GhndwcqsF1OZ6Perlcbb?usp=share_link)).
