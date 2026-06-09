@@ -106,63 +106,8 @@ candidate_mask   = dark_mask & neighborhood_dark_mask   # both conditions must h
 candidates_local = np.argwhere(candidate_mask)           # (row, col) of each candidate
 ```
 
-**Composite scoring** — each candidate pixel gets a score from four factors:
 
-```python
-roi_h, roi_w    = roi.shape
-max_border_dist = max(1.0, min(roi_h, roi_w) / 2.0)
 
-for yy, xx in candidates_local:
-    intensity = float(roi[yy, xx])
-    neigh     = float(neighborhood_mean[yy, xx])
-
-    # Factor 1 — how dark the pixel is (weight 0.40)
-    darkness_score = (255.0 - intensity) / 255.0
-
-    # Factor 2 — how dark the surrounding area is (weight 0.20)
-    neighborhood_score = (255.0 - neigh) / 255.0
-
-    # Factor 3 — lies on a linear dark structure (weight 0.30)
-    line_score = self._line_continuity_score(roi, int(yy), int(xx), line_dark_threshold)
-
-    # Factor 4 — not too close to bounding box boundary (weight 0.10)
-    border_dist  = float(min(yy, xx, roi_h - 1 - yy, roi_w - 1 - xx))
-    center_score = np.clip(border_dist / max_border_dist, 0.0, 1.0)
-
-    final_score = (
-        0.40 * darkness_score
-      + 0.20 * neighborhood_score
-      + 0.30 * line_score
-      + 0.10 * center_score
-    )
-    candidate_scores.append(final_score)
-```
-
-**Sort and spread with FPS:**
-
-```python
-# Sort candidates by score — best first
-candidate_scores = np.asarray(candidate_scores, dtype=np.float32)
-order            = np.argsort(-candidate_scores)
-candidates_local = candidates_local[order]
-
-# Keep top candidates only
-top_n            = min(len(candidates_local), max(200, num_points * 60))
-candidates_local = candidates_local[:top_n]
-
-# Convert local (row, col) to absolute image (x, y)
-candidates_xy = np.stack(
-    [candidates_local[:, 1] + x1,   # col -> absolute x
-     candidates_local[:, 0] + y1],  # row -> absolute y
-    axis=1,
-).astype(np.float32)
-
-# Spread 6 prompts along the crack using Farthest Point Sampling
-sampled_xy   = self._farthest_point_sample(candidates_xy, num_points)
-point_labels = np.ones((len(sampled_xy),), dtype=np.int32)  # 1 = positive
-```
-
----
 
 ## Step 3 — Line Continuity Score (`_line_continuity_score`)
 
@@ -214,7 +159,63 @@ def _line_continuity_score(roi_gray, y, x, line_dark_threshold):
 ```
 
 ---
+**Composite scoring** — each candidate pixel gets a score from four factors:
 
+```python
+roi_h, roi_w    = roi.shape
+max_border_dist = max(1.0, min(roi_h, roi_w) / 2.0)
+
+for yy, xx in candidates_local:
+    intensity = float(roi[yy, xx])
+    neigh     = float(neighborhood_mean[yy, xx])
+
+    # Factor 1 — how dark the pixel is (weight 0.40)
+    darkness_score = (255.0 - intensity) / 255.0
+
+    # Factor 2 — how dark the surrounding area is (weight 0.20)
+    neighborhood_score = (255.0 - neigh) / 255.0
+
+    # Factor 3 — lies on a linear dark structure (weight 0.30)
+    line_score = self._line_continuity_score(roi, int(yy), int(xx), line_dark_threshold)
+
+    # Factor 4 — not too close to bounding box boundary (weight 0.10)
+    border_dist  = float(min(yy, xx, roi_h - 1 - yy, roi_w - 1 - xx))
+    center_score = np.clip(border_dist / max_border_dist, 0.0, 1.0)
+
+    final_score = (
+        0.40 * darkness_score
+      + 0.20 * neighborhood_score
+      + 0.30 * line_score
+      + 0.10 * center_score
+    )
+    candidate_scores.append(final_score)
+```
+--
+**Sort and spread with FPS:**
+
+```python
+# Sort candidates by score — best first
+candidate_scores = np.asarray(candidate_scores, dtype=np.float32)
+order            = np.argsort(-candidate_scores)
+candidates_local = candidates_local[order]
+
+# Keep top candidates only
+top_n            = min(len(candidates_local), max(200, num_points * 60))
+candidates_local = candidates_local[:top_n]
+
+# Convert local (row, col) to absolute image (x, y)
+candidates_xy = np.stack(
+    [candidates_local[:, 1] + x1,   # col -> absolute x
+     candidates_local[:, 0] + y1],  # row -> absolute y
+    axis=1,
+).astype(np.float32)
+
+# Spread 6 prompts along the crack using Farthest Point Sampling
+sampled_xy   = self._farthest_point_sample(candidates_xy, num_points)
+point_labels = np.ones((len(sampled_xy),), dtype=np.int32)  # 1 = positive
+```
+
+---
 ## Step 4 — Negative Prompt Sampling (`sample_negative_points_in_and_around_box`)
 
 Samples 3 negative points outside the bounding box to tell SAM2 where the crack is not. Only bright pixels qualify. Three distance zones concentrate coverage near the critical boundary edge.
