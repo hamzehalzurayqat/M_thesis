@@ -128,7 +128,11 @@ def _line_continuity_score(roi_gray, y, x, line_dark_threshold):
         (-1, 1),  # 135 degrees
         (-2, 1),  # ~153 degrees
     ]
-
+#\  |  /
+# \ | /
+#-- P --
+# / | \
+#/  |  \
     best = 0.0
     for dx, dy in directions:
         side_scores = []
