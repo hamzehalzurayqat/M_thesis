@@ -7,17 +7,17 @@
 The image is loaded, preprocessed, and passed through RF-DETR. Each object query outputs one bounding box and a class logit vector. The no-object class (last column) is excluded before scoring.
 
 ```python
-# Load and preprocess image
+# Load and preprocess image and ensure have 3 channels RGB 
 image = Image.open(image_path).convert('RGB')
 image_np = np.array(image)
 
-transformed, _ = self.transform(image, None)
+transformed, _ = self.transform(image, None) # resize, normalizsed 
 samples = nested_tensor_from_tensor_list([transformed])
 samples = samples.to(self.device)
 
 # Forward pass
-with torch.no_grad():
-    outputs = self.rfdetr_model(samples)
+with torch.no_grad(): # no gradient to save memory
+    outputs = self.rfdetr_model(samples) # run the model 
 
 # Extract predictions
 pred_logits = outputs['pred_logits'][0]  # [num_queries, num_classes]
@@ -60,7 +60,7 @@ def _box_cxcywh_to_xyxy(boxes, img_w, img_h):
 
 ```python
 def _nms_torch(cls, boxes_xyxy, scores, iou_threshold):
-    order = torch.argsort(scores, descending=True)
+    order = torch.argsort(scores, descending=True) # stro boex by confidence 
     keep  = []
 
     while order.numel() > 0:
@@ -97,7 +97,7 @@ roi  = gray[y1:y2 + 1, x1:x2 + 1]
 # Candidate filtering — dark AND surrounded by dark neighbors
 dark_threshold         = np.percentile(roi, darkest_percentile)        # bottom 10%
 neighborhood_mean      = cv2.blur(roi.astype(np.float32), (3, 3))      # 3x3 local mean
-neighborhood_threshold = np.percentile(neighborhood_mean, min(30.0, darkest_percentile + 8.0))
+neighborhood_threshold = np.percentile(neighborhood_mean, min(30.0, darkest_percentile + 8.0)) # This finds the value below which the darkest 18% of local averages lie.
 
 dark_mask              = roi <= dark_threshold
 neighborhood_dark_mask = neighborhood_mean <= neighborhood_threshold
@@ -134,7 +134,7 @@ def _line_continuity_score(roi_gray, y, x, line_dark_threshold):
 # / | \
 #/  |  \
     best = 0.0
-    for dx, dy in directions:
+    for dx, dy in directions: # loop for every direction
         side_scores = []
 
         # Check both sides of the current pixel along this direction
@@ -142,21 +142,21 @@ def _line_continuity_score(roi_gray, y, x, line_dark_threshold):
             dark_hits = 0
             valid     = 0
 
-            # Take 2 steps out in each direction
+            # Take 2 steps out in each direction x-2 x-1 p x+1 x+2
             for step in (1, 2):
                 xx = x + sign * dx * step
                 yy = y + sign * dy * step
 
                 if 0 <= xx < w and 0 <= yy < h:
                     valid += 1
-                    if roi_gray[yy, xx] <= line_dark_threshold:
+                    if roi_gray[yy, xx] <= line_dark_threshold: # dark dark point dark dark
                         dark_hits += 1
 
             side_scores.append((dark_hits / valid) if valid > 0 else 0.0)
 
         # min() enforces BOTH sides must be dark — not just one
         direction_score = min(side_scores)
-        if direction_score > best:
+        if direction_score > best: # keep only the best direction 
             best = direction_score
 
     return float(best)
