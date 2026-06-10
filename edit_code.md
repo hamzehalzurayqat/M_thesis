@@ -193,7 +193,7 @@ def build_transformer(args):
 Two new classes added before `Transformer` (lines 129–228):
 
 ```python
-class TransformerEncoderLayer(nn.Module):
+class TransformerEncoderLayer(nn.Module): 
     """Encoder layer with Multi-Scale Deformable Attention for better feature aggregation"""
     def __init__(self, d_model=256, nhead=8, dim_feedforward=1024,
                  dropout=0.1, activation="relu", normalize_before=False,
@@ -213,7 +213,7 @@ class TransformerEncoderLayer(nn.Module):
     @staticmethod
     def with_pos_embed(tensor, pos):
         return tensor if pos is None else tensor + pos
-
+# take featuer -> apply mulit sclae -> refine -> stablized 
     def forward_post(self, src, pos, reference_points, spatial_shapes,
                      level_start_index, padding_mask=None):
         src2 = self.self_attn(
@@ -234,7 +234,7 @@ class TransformerEncoderLayer(nn.Module):
                                  level_start_index, padding_mask)
 
 
-class TransformerEncoder(nn.Module):
+class TransformerEncoder(nn.Module): # run multiple encoder layers in sequence to refine features deeply 
     """Encoder with multiple layers using MSDeformAttn"""
     def __init__(self, encoder_layer, num_layers):
         super().__init__()
@@ -242,7 +242,7 @@ class TransformerEncoder(nn.Module):
         self.num_layers = num_layers
 
     @staticmethod
-    def get_reference_points(spatial_shapes, valid_ratios, device):
+    def get_reference_points(spatial_shapes, valid_ratios, device): # tell attenction where to look in each featuer map 
         reference_points_list = []
         for lvl, (H_, W_) in enumerate(spatial_shapes):
             ref_y, ref_x = torch.meshgrid(
@@ -256,7 +256,7 @@ class TransformerEncoder(nn.Module):
         reference_points = torch.cat(reference_points_list, 1)
         reference_points = reference_points[:, :, None] * valid_ratios[:, None]
         return reference_points
-
+# run multi-layer encoder with multi-scale attention 
     def forward(self, src, spatial_shapes, level_start_index, valid_ratios,
                 pos=None, padding_mask=None):
         output = src
