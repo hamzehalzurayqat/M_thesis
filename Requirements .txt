@@ -1,0 +1,40 @@
+# --- PyTorch Framework (CUDA 12.1 Wheels Required) ---
+# NOTE: the correct index URL for CUDA wheels is the download subdomain, not pytorch.org itself.
+# If you're on CPU-only, drop the --extra-index-url line entirely.
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch
+torchvision
+
+# --- Transformers (PINNED: newer releases removed find_pruneable_heads_and_indices,
+# which rf-detr's DINOv2 backbone code depends on) ---
+transformers<4.50
+
+# --- RF-DETR dependencies ---
+supervision
+pycocotools           # if this fails to build on Windows, use pycocotools-windows instead
+pydantic
+timm
+einops
+peft
+scikit-image
+ipywidgets
+# --- Core SAM 2 Configuration & Utilities ---
+hydra-core>=1.3.2
+omegaconf>=2.3.0
+tqdm>=4.66.0
+iopath>=0.1.10
+
+# --- Computer Vision & Image Handling ---
+opencv-python>=4.9.0
+pillow>=10.2.0
+numpy
+
+# --- Visualizations & Plotting ---
+matplotlib>=3.8.0
+matplotlib-inline>=0.1.6
+
+# --- Hugging Face Hub (used for DINOv2 backbone weights download in rf-detr) ---
+huggingface_hub
+
+# the coud 
+#nvidia-smi
